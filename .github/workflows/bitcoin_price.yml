@@ -2,7 +2,7 @@ name: Bitcoin Price Bot
 
 on:
   schedule:
-    - cron: '0 0,12 * * *'  # Runs at 00:00 and 12:00 UTC
+    - cron: '45 14,0 * * *'  # Runs at 9:45 AM ET and 7:00 PM ET
   workflow_dispatch:
 
 jobs:
