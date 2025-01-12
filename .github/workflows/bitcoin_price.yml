@@ -1,12 +1,11 @@
-name: Bitcoin Price Bot
-
+name: Daily Horoscope Bot
 on:
   schedule:
-    - cron: '0 0 * * *'  # Runs at 7:00 PM ET (00:00 UTC)
+    - cron: '15 10 * * *'  # Runs at 5:15 AM ET (10:15 UTC)
   workflow_dispatch:
 
 jobs:
-  post-bitcoin-price:
+  post-daily-horoscope:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
