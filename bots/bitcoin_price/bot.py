@@ -4,7 +4,7 @@ import tweepy
 from datetime import datetime
 
 def get_daily_horoscope():
-    url = "https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily"
+    url = f"https://horoscope-app-api.vercel.app/api/v1/get-horoscope/daily?sign={sign}&day=today"
     response = requests.get(url)
     data = response.json()
     return data['data']['horoscope_data']
