@@ -42,18 +42,7 @@ def post_tweet(tweet_text):
         access_token_secret=os.getenv('TWITTER_ACCESS_TOKEN_SECRET')
     )
     
-    # Split into threads if too long
-    if len(tweet_text) > 280:
-        tweets = [tweet_text[i:i+280] for i in range(0, len(tweet_text), 280)]
-        previous_tweet_id = None
-        for tweet in tweets:
-            response = client.create_tweet(
-                text=tweet,
-                in_reply_to_tweet_id=previous_tweet_id
-            )
-            previous_tweet_id = response.data['id']
-    else:
-        client.create_tweet(text=tweet_text)
+    client.create_tweet(text=tweet_text)
 
 def main():
     try:
