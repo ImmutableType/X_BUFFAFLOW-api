@@ -1,11 +1,11 @@
-name: Daily Horoscope Bot
+name: MoonBuffaFLOW Trading Monitor
 on:
   schedule:
-    - cron: '15 10 * * *'  # Runs at 5:15 AM ET (10:15 UTC)
+    - cron: '0 * * * *'  # Runs every hour at minute 0
   workflow_dispatch:
 
 jobs:
-  post-daily-horoscope:
+  monitor-buffaflow:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -15,7 +15,7 @@ jobs:
         python-version: '3.11'
     - name: Install dependencies
       run: |
-        cd bots/bitcoin_price
+        cd bots/buffaflow_monitor
         pip install -r requirements.txt
     - name: Run bot
       env:
@@ -24,5 +24,5 @@ jobs:
         TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
         TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
       run: |
-        cd bots/bitcoin_price
+        cd bots/buffaflow_monitor
         python bot.py
