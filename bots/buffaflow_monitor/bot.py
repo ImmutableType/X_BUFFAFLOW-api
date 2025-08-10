@@ -5,8 +5,8 @@ from datetime import datetime
 import json
 
 # Configuration
-CONTRACT_ADDRESS = "0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798"
-FLOW_RPC_URL = "https://flow-mainnet.g.alchemy.com/v2/demo"
+CONTRACT_ADDRESS = "0xc8654A7a4BD671D4cEac6096A92a3170FA3b4798"
+FLOW_RPC_URL = "https://mainnet.evm.nodes.onflow.org"
 MIN_TRADE_AMOUNT = 1000  # 1,000 tokens
 
 def get_recent_transfers():
@@ -22,24 +22,24 @@ def get_recent_transfers():
         response = requests.post(FLOW_RPC_URL, json=payload)
         current_block = int(response.json()['result'], 16)
         
-        # Look back 30,000 blocks
+        # Target your specific transaction block
         from_block = 36470080  # Your transaction block - 1
-        to_block = 36470090    # A few blocks after your transaction
+        to_block = 36470090    # A few blocks after
         
         print(f"DEBUG: Current block: {current_block}")
-        print(f"DEBUG: Looking from block {from_block} to {to_block}")  # Instead of "to latest"
+        print(f"DEBUG: Looking from block {from_block} to {to_block}")
         
         # Get ALL events from contract (no topic filtering)
-       payload = {
-    "jsonrpc": "2.0",
-    "method": "eth_getLogs",
-    "params": [{
-        "address": CONTRACT_ADDRESS,
-        "fromBlock": hex(from_block),
-        "toBlock": hex(to_block)     # NOW USES SPECIFIC END BLOCK
-    }],
-    "id": 2
-}
+        payload = {
+            "jsonrpc": "2.0",
+            "method": "eth_getLogs",
+            "params": [{
+                "address": CONTRACT_ADDRESS,
+                "fromBlock": hex(from_block),
+                "toBlock": hex(to_block)
+            }],
+            "id": 2
+        }
         
         response = requests.post(FLOW_RPC_URL, json=payload)
         logs = response.json().get('result', [])
