@@ -46,17 +46,10 @@ def get_recent_transfers():
         
         print(f"DEBUG: ALL events found: {len(logs)}")
         
-        # Examine first few events to understand the structure
-        for i, log in enumerate(logs[:10]):
-            print(f"DEBUG: Event {i}:")
-            print(f"  Topics: {log.get('topics', [])}")
-            print(f"  Data: {log.get('data', '')}")
-            print(f"  Block: {log.get('blockNumber', '')}")
-            print(f"  TxHash: {log.get('transactionHash', '')}")
-            print("---")
-        
         # Standard Transfer event signature
         transfer_topic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+        # ERC-404 specific event signature (found in your transaction)
+        erc404_transfer_topic = "0xe59fdd36d0d223c0c7d996db7ad796880f45e1936cb0bb7ac102e7082e031487"
         
         significant_trades = []
         
@@ -66,9 +59,12 @@ def get_recent_transfers():
                 topics = log.get('topics', [])
                 data = log.get('data', '')
                 
-                # Check if this looks like a Transfer event
-                if len(topics) >= 3 and topics[0] == transfer_topic:
-                    print(f"DEBUG: Found Transfer event {i}")
+                print(f"DEBUG: Processing event {i}: {topics[0] if topics else 'No topics'}")
+                
+                # Check for EITHER standard Transfer OR ERC-404 transfer
+                if len(topics) >= 3 and (topics[0] == transfer_topic or topics[0] == erc404_transfer_topic):
+                    event_type = 'ERC-20' if topics[0] == transfer_topic else 'ERC-404'
+                    print(f"DEBUG: Found Transfer event {i} (type: {event_type})")
                     
                     # Parse transfer amount (18 decimals)
                     if data and data != '0x':
@@ -93,17 +89,18 @@ def get_recent_transfers():
                                     'from': from_addr,
                                     'to': to_addr,
                                     'tx_hash': log['transactionHash'],
-                                    'block': log['blockNumber']
+                                    'block': log['blockNumber'],
+                                    'type': event_type
                                 })
-                                print(f"DEBUG: ✅ Added trade: {amount_tokens} tokens")
+                                print(f"DEBUG: ✅ Added trade: {amount_tokens} tokens ({event_type})")
                             else:
                                 print(f"DEBUG: ❌ Skipped mint/burn transaction")
                         else:
                             print(f"DEBUG: ❌ Below threshold: {amount_tokens} < {MIN_TRADE_AMOUNT}")
                 
-                # Also check for other event signatures that might be transfers
-                elif len(topics) > 0:
-                    print(f"DEBUG: Non-Transfer event: {topics[0]}")
+                # Show non-transfer events for debugging
+                else:
+                    print(f"DEBUG: Non-Transfer event: {topics[0] if topics else 'No topics'}")
                     
             except Exception as e:
                 print(f"DEBUG: Error processing log {i}: {e}")
