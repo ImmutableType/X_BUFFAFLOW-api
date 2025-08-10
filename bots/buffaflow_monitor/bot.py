@@ -23,22 +23,23 @@ def get_recent_transfers():
         current_block = int(response.json()['result'], 16)
         
         # Look back 30,000 blocks
-        from_block = current_block - 30000
+        from_block = 36470080  # Your transaction block - 1
+        to_block = 36470090    # A few blocks after your transaction
         
         print(f"DEBUG: Current block: {current_block}")
-        print(f"DEBUG: Looking from block {from_block} to latest")
+        print(f"DEBUG: Looking from block {from_block} to {to_block}")  # Instead of "to latest"
         
         # Get ALL events from contract (no topic filtering)
-        payload = {
-            "jsonrpc": "2.0",
-            "method": "eth_getLogs",
-            "params": [{
-                "address": CONTRACT_ADDRESS,
-                "fromBlock": hex(from_block),
-                "toBlock": "latest"
-            }],
-            "id": 2
-        }
+       payload = {
+    "jsonrpc": "2.0",
+    "method": "eth_getLogs",
+    "params": [{
+        "address": CONTRACT_ADDRESS,
+        "fromBlock": hex(from_block),
+        "toBlock": hex(to_block)     # NOW USES SPECIFIC END BLOCK
+    }],
+    "id": 2
+}
         
         response = requests.post(FLOW_RPC_URL, json=payload)
         logs = response.json().get('result', [])
