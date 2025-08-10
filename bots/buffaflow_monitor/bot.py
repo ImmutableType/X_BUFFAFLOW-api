@@ -22,12 +22,11 @@ def get_recent_transfers():
         response = requests.post(FLOW_RPC_URL, json=payload)
         current_block = int(response.json()['result'], 16)
         
-        # Target your specific transaction block
-        from_block = 36470080  # Your transaction block - 1
-        to_block = 36470090    # A few blocks after
+        # Monitor last hour of activity (back to production monitoring)
+        from_block = current_block - 1200  # ~1 hour back (3 second blocks)
         
         print(f"DEBUG: Current block: {current_block}")
-        print(f"DEBUG: Looking from block {from_block} to {to_block}")
+        print(f"DEBUG: Looking from block {from_block} to latest")
         
         # Get ALL events from contract (no topic filtering)
         payload = {
@@ -36,7 +35,7 @@ def get_recent_transfers():
             "params": [{
                 "address": CONTRACT_ADDRESS,
                 "fromBlock": hex(from_block),
-                "toBlock": hex(to_block)
+                "toBlock": "latest"
             }],
             "id": 2
         }
@@ -58,8 +57,6 @@ def get_recent_transfers():
             try:
                 topics = log.get('topics', [])
                 data = log.get('data', '')
-                
-                print(f"DEBUG: Processing event {i}: {topics[0] if topics else 'No topics'}")
                 
                 # Check for EITHER standard Transfer OR ERC-404 transfer
                 if len(topics) >= 3 and (topics[0] == transfer_topic or topics[0] == erc404_transfer_topic):
@@ -97,10 +94,6 @@ def get_recent_transfers():
                                 print(f"DEBUG: ❌ Skipped mint/burn transaction")
                         else:
                             print(f"DEBUG: ❌ Below threshold: {amount_tokens} < {MIN_TRADE_AMOUNT}")
-                
-                # Show non-transfer events for debugging
-                else:
-                    print(f"DEBUG: Non-Transfer event: {topics[0] if topics else 'No topics'}")
                     
             except Exception as e:
                 print(f"DEBUG: Error processing log {i}: {e}")
