@@ -114,18 +114,18 @@ def get_recent_transfers():
         return []
 
 def format_trade_message(trade):
-    """Format a token trade into a tweet message"""
+    """Format a token trade into a tweet message with tier variations"""
     amount = int(trade['amount'])
     amount_str = f"{amount:,}"
     
     if amount >= 100000:
-        return f"🐃 You've been Herd! 🐋 LIBERTY STAMPEDE! {amount_str} $BUFFAFLOW tokens thundering across the range!\n\nWhen giants roam the open range, the whole ecosystem feels it!\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
+        return f"🐃 MoonBuffaFLOW BOT: 🐋 LIBERTY STAMPEDE! {amount_str} $BUFFAFLOW tokens bought\n\nWhen giants roam the open range for @immutable_type\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     elif amount >= 20000:
-        return f"🐃 You've been Herd! FREEDOM migration! {amount_str} $BUFFAFLOW tokens roaming to new territory!\n\nThe bulls are charging across the open range on Flow EVM\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
+        return f"🐃 MoonBuffaFLOW BOT: FREEDOM migration! {amount_str} $BUFFAFLOW tokens bought\n\nThe bulls charge across the range for @immutable_type\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     elif amount >= 5000:
-        return f"🐃 You've been Herd! ROAMING across the range! {amount_str} $BUFFAFLOW tokens on the move!\n\nSomeone's claiming more territory in the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
+        return f"🐃 MoonBuffaFLOW BOT: Big stampede! {amount_str} $BUFFAFLOW tokens bought\n\nSomeone's claiming territory for @immutable_type\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     else:
-        return f"🐃 You've been Herd! {amount_str} $BUFFAFLOW tokens are roaming the open range!\n\nThe herd finds new pastures on Flow EVM\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
+        return f"🐃 MoonBuffaFLOW BOT: {amount_str} $BUFFAFLOW tokens bought\n\nThe herd roams for @immutable_type\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
 
 def post_tweet(tweet_text):
     """Post tweet using the same mechanism as the horoscope bot"""
