@@ -1,14 +1,13 @@
 import os
 import requests
 import tweepy
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 
 # Configuration
 CONTRACT_ADDRESS = "0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798"
-FLOW_RPC_URL = "https://evm.nodes.onflow.org"  # Try official RPC
+FLOW_RPC_URL = "https://mainnet.evm.nodes.onflow.org"  # Back to original working RPC
 MIN_TRADE_AMOUNT = 1000  # 1,000 tokens
-OPENSEA_COLLECTION = "moonbuffaflow"
 
 def get_recent_transfers():
     """Get recent $BUFFAFLOW transfers from Flow EVM"""
@@ -23,7 +22,7 @@ def get_recent_transfers():
         response = requests.post(FLOW_RPC_URL, json=payload)
         current_block = int(response.json()['result'], 16)
         
-        # Look back 30,000 blocks (not limiting by time anymore)
+        # Look back 30,000 blocks
         from_block = current_block - 30000
         
         print(f"DEBUG: Current block: {current_block}")
@@ -104,41 +103,6 @@ def get_recent_transfers():
         print(f"Error fetching transfers: {e}")
         return []
 
-def get_opensea_activity():
-    """Get recent OpenSea activity for MoonBuffaFLOW collection"""
-    try:
-        # OpenSea v1 API (no key required) - removed time filtering
-        url = f"https://api.opensea.io/api/v1/events"
-        params = {
-            'collection_slug': OPENSEA_COLLECTION,
-            'event_type': 'successful',
-            'only_opensea': 'false',
-            'offset': 0,
-            'limit': 10  # Get recent events without time filter
-        }
-        
-        headers = {
-            'Accept': 'application/json',
-            'User-Agent': 'MoonBuffaFLOW-Bot/1.0'
-        }
-        
-        response = requests.get(url, params=params, headers=headers)
-        print(f"DEBUG: OpenSea API response: {response.status_code}")
-        
-        if response.status_code == 200:
-            data = response.json()
-            events = data.get('asset_events', [])
-            print(f"DEBUG: OpenSea events found: {len(events)}")
-            return events[:3]  # Return up to 3 recent events
-        else:
-            print(f"OpenSea API error: {response.status_code}")
-            if response.status_code == 403:
-                print("DEBUG: OpenSea is blocking our requests - might need API key")
-            return []
-    except Exception as e:
-        print(f"Error fetching OpenSea activity: {e}")
-        return []
-
 def format_trade_message(trade):
     """Format a token trade into a tweet message"""
     amount = int(trade['amount'])
@@ -152,32 +116,6 @@ def format_trade_message(trade):
         return f"🐃 You've been Herd! ROAMING across the range! {amount_str} $BUFFAFLOW tokens on the move!\n\nSomeone's claiming more territory in the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     else:
         return f"🐃 You've been Herd! {amount_str} $BUFFAFLOW tokens are roaming the open range!\n\nThe herd finds new pastures on Flow EVM\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
-
-def format_opensea_message(event):
-    """Format an OpenSea event into a tweet message"""
-    try:
-        token_id = event.get('asset', {}).get('token_id', 'Unknown')
-        event_type = event.get('event_type')
-        
-        # Try to get price information
-        payment_token = event.get('payment_token', {})
-        total_price = event.get('total_price')
-        
-        if total_price and payment_token:
-            decimals = payment_token.get('decimals', 18)
-            symbol = payment_token.get('symbol', 'FLOW')
-            price = int(total_price) / (10 ** decimals)
-            price_str = f"{price:.3f} {symbol}".rstrip('0').rstrip('.')
-        else:
-            price_str = "Unknown price"
-        
-        if event_type == 'successful':
-            return f"🐃 You've been Herd! MoonBuffaFLOW #{token_id} just found a new home for {price_str}!\n\nThe herd welcomes new ranchers on the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
-        else:
-            return f"🐃 You've been Herd! MoonBuffaFLOW #{token_id} activity detected!\n\nSomething's stirring on the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
-    except Exception as e:
-        print(f"Error formatting OpenSea message: {e}")
-        return f"🐃 You've been Herd! New MoonBuffaFLOW activity on the range!\n\nThe herd is always moving\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
 
 def post_tweet(tweet_text):
     """Post tweet using the same mechanism as the horoscope bot"""
@@ -210,11 +148,8 @@ def main():
         
         tweets_posted = 0
         
-        # Post about trades (limit to 2 per run to avoid spam)
-        for trade in trades[:2]:
-            if tweets_posted >= 3:  # Max 3 tweets per run
-                break
-                
+        # Post about trades (limit to 3 per run)
+        for trade in trades[:3]:
             message = format_trade_message(trade)
             print(f"DEBUG: Generated message: {message}")
             
@@ -224,26 +159,10 @@ def main():
                 import time
                 time.sleep(10)
         
-        # Check for OpenSea activity
-        opensea_events = get_opensea_activity()
-        print(f"Found {len(opensea_events)} OpenSea events")
-        
-        # Post about OpenSea activity (limit to remaining tweet slots)
-        remaining_tweets = 3 - tweets_posted
-        for event in opensea_events[:remaining_tweets]:
-            if tweets_posted >= 3:
-                break
-                
-            message = format_opensea_message(event)
-            if post_tweet(message):
-                tweets_posted += 1
-                import time
-                time.sleep(10)
-        
         if tweets_posted == 0:
-            print("ℹ️ No significant activity found in the search window")
+            print("ℹ️ No significant $BUFFAFLOW activity found in the search window")
         else:
-            print(f"✅ Posted {tweets_posted} tweets about MoonBuffaFLOW activity")
+            print(f"✅ Posted {tweets_posted} tweets about $BUFFAFLOW activity")
             
     except Exception as e:
         print(f"Error in main function: {e}")
