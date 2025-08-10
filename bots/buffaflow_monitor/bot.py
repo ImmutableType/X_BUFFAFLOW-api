@@ -24,7 +24,7 @@ def get_recent_transfers():
         current_block = int(response.json()['result'], 16)
         
         # Look back ~1 hour of blocks (assuming ~3 second blocks)
-        from_block = current_block - 1200
+        from_block = current_block - 7200
         
         print(f"DEBUG: Current block: {current_block}")
         print(f"DEBUG: Looking from block {from_block} to latest")
@@ -132,12 +132,14 @@ def format_trade_message(trade):
     amount = int(trade['amount'])
     amount_str = f"{amount:,}"
     
-    if amount >= 10000:
-        return f"🐋 WHALE ALERT! {amount_str} $BUFFAFLOW tokens just traded! 🚀\n\n💎 Someone's making big moves! #MoonBuffaFLOW #FlowEVM"
+    if amount >= 100000:
+        return f"🐃 You've been Herd! 🐋 LIBERTY STAMPEDE! {amount_str} $BUFFAFLOW tokens thundering across the range!\n\nWhen giants roam the open range, the whole ecosystem feels it!\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
+    elif amount >= 20000:
+        return f"🐃 You've been Herd! FREEDOM migration! {amount_str} $BUFFAFLOW tokens roaming to new territory!\n\nThe bulls are charging across the open range on Flow EVM\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     elif amount >= 5000:
-        return f"🚀 BIG MOVE! {amount_str} $BUFFAFLOW tokens on the move! 📈\n\n💎 #MoonBuffaFLOW #FlowEVM"
+        return f"🐃 You've been Herd! ROAMING across the range! {amount_str} $BUFFAFLOW tokens on the move!\n\nSomeone's claiming more territory in the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     else:
-        return f"💫 {amount_str} $BUFFAFLOW tokens just traded! 🔥\n\n#MoonBuffaFLOW #FlowEVM"
+        return f"🐃 You've been Herd! {amount_str} $BUFFAFLOW tokens are roaming the open range!\n\nThe herd finds new pastures on Flow EVM\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
 
 def format_opensea_message(event):
     """Format an OpenSea event into a tweet message"""
