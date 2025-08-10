@@ -6,7 +6,7 @@ import json
 
 # Configuration
 CONTRACT_ADDRESS = "0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798"
-FLOW_RPC_URL = "https://mainnet.evm.nodes.onflow.org"
+FLOW_RPC_URL = "https://evm.nodes.onflow.org"  # Try official RPC
 MIN_TRADE_AMOUNT = 1000  # 1,000 tokens
 OPENSEA_COLLECTION = "moonbuffaflow"
 
@@ -23,7 +23,7 @@ def get_recent_transfers():
         response = requests.post(FLOW_RPC_URL, json=payload)
         current_block = int(response.json()['result'], 16)
         
-        # Look back ~1 hour of blocks (assuming ~3 second blocks)
+        # Look back 30,000 blocks (not limiting by time anymore)
         from_block = current_block - 30000
         
         print(f"DEBUG: Current block: {current_block}")
@@ -32,7 +32,23 @@ def get_recent_transfers():
         # Transfer event signature: Transfer(address,address,uint256)
         transfer_topic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
         
-        # Get logs for Transfer events
+        # Get ALL events from contract first (debug)
+        payload_all = {
+            "jsonrpc": "2.0",
+            "method": "eth_getLogs",
+            "params": [{
+                "address": CONTRACT_ADDRESS,
+                "fromBlock": hex(from_block),
+                "toBlock": "latest"
+            }],
+            "id": 2
+        }
+        
+        response_all = requests.post(FLOW_RPC_URL, json=payload_all)
+        all_logs = response_all.json().get('result', [])
+        print(f"DEBUG: ALL events from contract: {len(all_logs)}")
+        
+        # Get logs for Transfer events specifically
         payload = {
             "jsonrpc": "2.0",
             "method": "eth_getLogs",
@@ -42,13 +58,13 @@ def get_recent_transfers():
                 "fromBlock": hex(from_block),
                 "toBlock": "latest"
             }],
-            "id": 2
+            "id": 3
         }
         
         response = requests.post(FLOW_RPC_URL, json=payload)
         logs = response.json().get('result', [])
         
-        print(f"DEBUG: Total raw logs found: {len(logs)}")
+        print(f"DEBUG: Transfer event logs found: {len(logs)}")
         
         significant_trades = []
         for i, log in enumerate(logs):
@@ -91,14 +107,14 @@ def get_recent_transfers():
 def get_opensea_activity():
     """Get recent OpenSea activity for MoonBuffaFLOW collection"""
     try:
-        # OpenSea v1 API (no key required)
+        # OpenSea v1 API (no key required) - removed time filtering
         url = f"https://api.opensea.io/api/v1/events"
         params = {
             'collection_slug': OPENSEA_COLLECTION,
             'event_type': 'successful',
             'only_opensea': 'false',
             'offset': 0,
-            'limit': 20
+            'limit': 10  # Get recent events without time filter
         }
         
         headers = {
@@ -107,21 +123,17 @@ def get_opensea_activity():
         }
         
         response = requests.get(url, params=params, headers=headers)
+        print(f"DEBUG: OpenSea API response: {response.status_code}")
+        
         if response.status_code == 200:
             data = response.json()
-            # Filter for recent events (last hour)
-            one_hour_ago = datetime.now() - timedelta(hours=1)
-            recent_events = []
-            
-            for event in data.get('asset_events', []):
-                if event.get('created_date'):
-                    event_time = datetime.fromisoformat(event['created_date'].replace('Z', '+00:00'))
-                    if event_time > one_hour_ago:
-                        recent_events.append(event)
-            
-            return recent_events
+            events = data.get('asset_events', [])
+            print(f"DEBUG: OpenSea events found: {len(events)}")
+            return events[:3]  # Return up to 3 recent events
         else:
             print(f"OpenSea API error: {response.status_code}")
+            if response.status_code == 403:
+                print("DEBUG: OpenSea is blocking our requests - might need API key")
             return []
     except Exception as e:
         print(f"Error fetching OpenSea activity: {e}")
@@ -160,12 +172,12 @@ def format_opensea_message(event):
             price_str = "Unknown price"
         
         if event_type == 'successful':
-            return f"💰 SOLD! MoonBuffaFLOW #{token_id} just sold for {price_str}! 🎉\n\n@opensea #MoonBuffaFLOW #FlowNFT"
+            return f"🐃 You've been Herd! MoonBuffaFLOW #{token_id} just found a new home for {price_str}!\n\nThe herd welcomes new ranchers on the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
         else:
-            return f"🔔 MoonBuffaFLOW #{token_id} activity on @opensea! #MoonBuffaFLOW #FlowNFT"
+            return f"🐃 You've been Herd! MoonBuffaFLOW #{token_id} activity detected!\n\nSomething's stirring on the open range\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
     except Exception as e:
         print(f"Error formatting OpenSea message: {e}")
-        return f"🔔 New MoonBuffaFLOW activity on @opensea! #MoonBuffaFLOW #FlowNFT"
+        return f"🐃 You've been Herd! New MoonBuffaFLOW activity on the range!\n\nThe herd is always moving\n\n\n🎵 Oh, give me a home, where the $BUFFAFLOW roam... 🎵"
 
 def post_tweet(tweet_text):
     """Post tweet using the same mechanism as the horoscope bot"""
@@ -229,7 +241,7 @@ def main():
                 time.sleep(10)
         
         if tweets_posted == 0:
-            print("ℹ️ No significant activity found in the last hour")
+            print("ℹ️ No significant activity found in the search window")
         else:
             print(f"✅ Posted {tweets_posted} tweets about MoonBuffaFLOW activity")
             
