@@ -6,7 +6,7 @@ import json
 
 # Configuration
 CONTRACT_ADDRESS = "0xc8654a7a4bd671d4ceac6096a92a3170fa3b4798"
-FLOW_RPC_URL = "https://mainnet.evm.nodes.onflow.org"  # Back to original working RPC
+FLOW_RPC_URL = "https://mainnet.evm.nodes.onflow.org"
 MIN_TRADE_AMOUNT = 1000  # 1,000 tokens
 
 def get_recent_transfers():
@@ -28,11 +28,8 @@ def get_recent_transfers():
         print(f"DEBUG: Current block: {current_block}")
         print(f"DEBUG: Looking from block {from_block} to latest")
         
-        # Transfer event signature: Transfer(address,address,uint256)
-        transfer_topic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-        
-        # Get ALL events from contract first (debug)
-        payload_all = {
+        # Get ALL events from contract (no topic filtering)
+        payload = {
             "jsonrpc": "2.0",
             "method": "eth_getLogs",
             "params": [{
@@ -43,62 +40,77 @@ def get_recent_transfers():
             "id": 2
         }
         
-        response_all = requests.post(FLOW_RPC_URL, json=payload_all)
-        all_logs = response_all.json().get('result', [])
-        print(f"DEBUG: ALL events from contract: {len(all_logs)}")
-        
-        # Get logs for Transfer events specifically
-        payload = {
-            "jsonrpc": "2.0",
-            "method": "eth_getLogs",
-            "params": [{
-                "address": CONTRACT_ADDRESS,
-                "topics": [transfer_topic],
-                "fromBlock": hex(from_block),
-                "toBlock": "latest"
-            }],
-            "id": 3
-        }
-        
         response = requests.post(FLOW_RPC_URL, json=payload)
         logs = response.json().get('result', [])
         
-        print(f"DEBUG: Transfer event logs found: {len(logs)}")
+        print(f"DEBUG: ALL events found: {len(logs)}")
+        
+        # Examine first few events to understand the structure
+        for i, log in enumerate(logs[:10]):
+            print(f"DEBUG: Event {i}:")
+            print(f"  Topics: {log.get('topics', [])}")
+            print(f"  Data: {log.get('data', '')}")
+            print(f"  Block: {log.get('blockNumber', '')}")
+            print(f"  TxHash: {log.get('transactionHash', '')}")
+            print("---")
+        
+        # Standard Transfer event signature
+        transfer_topic = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
         
         significant_trades = []
+        
+        # Process all events and look for Transfer-like patterns
         for i, log in enumerate(logs):
-            # Parse transfer amount (18 decimals)
-            amount_hex = log['data']
-            amount_wei = int(amount_hex, 16)
-            amount_tokens = amount_wei / (10 ** 18)
-            
-            # Parse from/to addresses
-            from_addr = '0x' + log['topics'][1][26:]
-            to_addr = '0x' + log['topics'][2][26:]
-            
-            print(f"DEBUG: Log {i}: {amount_tokens} tokens, from {from_addr[:10]}... to {to_addr[:10]}...")
-            print(f"DEBUG: Above threshold? {amount_tokens >= MIN_TRADE_AMOUNT}")
-            print(f"DEBUG: Not mint/burn? {from_addr != '0x0000000000000000000000000000000000000000' and to_addr != '0x0000000000000000000000000000000000000000'}")
-            
-            # Only include trades above threshold
-            if amount_tokens >= MIN_TRADE_AMOUNT:
-                # Skip mint/burn transactions
-                if from_addr != '0x0000000000000000000000000000000000000000' and to_addr != '0x0000000000000000000000000000000000000000':
-                    significant_trades.append({
-                        'amount': amount_tokens,
-                        'from': from_addr,
-                        'to': to_addr,
-                        'tx_hash': log['transactionHash'],
-                        'block': log['blockNumber']
-                    })
-                    print(f"DEBUG: ✅ Added trade: {amount_tokens} tokens")
-                else:
-                    print(f"DEBUG: ❌ Skipped mint/burn transaction")
-            else:
-                print(f"DEBUG: ❌ Below threshold: {amount_tokens} < {MIN_TRADE_AMOUNT}")
+            try:
+                topics = log.get('topics', [])
+                data = log.get('data', '')
+                
+                # Check if this looks like a Transfer event
+                if len(topics) >= 3 and topics[0] == transfer_topic:
+                    print(f"DEBUG: Found Transfer event {i}")
+                    
+                    # Parse transfer amount (18 decimals)
+                    if data and data != '0x':
+                        amount_hex = data
+                        amount_wei = int(amount_hex, 16)
+                        amount_tokens = amount_wei / (10 ** 18)
+                        
+                        # Parse from/to addresses
+                        from_addr = '0x' + topics[1][26:] if len(topics) > 1 else 'unknown'
+                        to_addr = '0x' + topics[2][26:] if len(topics) > 2 else 'unknown'
+                        
+                        print(f"DEBUG: Transfer {i}: {amount_tokens} tokens, from {from_addr[:10]}... to {to_addr[:10]}...")
+                        print(f"DEBUG: Above threshold? {amount_tokens >= MIN_TRADE_AMOUNT}")
+                        print(f"DEBUG: Not mint/burn? {from_addr != '0x0000000000000000000000000000000000000000' and to_addr != '0x0000000000000000000000000000000000000000'}")
+                        
+                        # Only include trades above threshold
+                        if amount_tokens >= MIN_TRADE_AMOUNT:
+                            # Skip mint/burn transactions
+                            if from_addr != '0x0000000000000000000000000000000000000000' and to_addr != '0x0000000000000000000000000000000000000000':
+                                significant_trades.append({
+                                    'amount': amount_tokens,
+                                    'from': from_addr,
+                                    'to': to_addr,
+                                    'tx_hash': log['transactionHash'],
+                                    'block': log['blockNumber']
+                                })
+                                print(f"DEBUG: ✅ Added trade: {amount_tokens} tokens")
+                            else:
+                                print(f"DEBUG: ❌ Skipped mint/burn transaction")
+                        else:
+                            print(f"DEBUG: ❌ Below threshold: {amount_tokens} < {MIN_TRADE_AMOUNT}")
+                
+                # Also check for other event signatures that might be transfers
+                elif len(topics) > 0:
+                    print(f"DEBUG: Non-Transfer event: {topics[0]}")
+                    
+            except Exception as e:
+                print(f"DEBUG: Error processing log {i}: {e}")
+                continue
         
         print(f"DEBUG: Final significant trades: {len(significant_trades)}")
         return significant_trades
+        
     except Exception as e:
         print(f"Error fetching transfers: {e}")
         return []
