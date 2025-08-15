@@ -23,7 +23,7 @@ def get_recent_transfers():
         current_block = int(response.json()['result'], 16)
         
         # Monitor last hour of activity (back to production monitoring)
-        from_block = current_block - 1200  # ~1 hour back (3 second blocks)
+        from_block = current_block - 2400  # ~1 hour back (3 second blocks)
         
         print(f"DEBUG: Current block: {current_block}")
         print(f"DEBUG: Looking from block {from_block} to latest")
